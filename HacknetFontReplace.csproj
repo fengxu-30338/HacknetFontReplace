@@ -131,9 +131,10 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>Copy "$(ProjectDir)/README.md" "$(ProjectDir)/Dist/README.md"
-Copy "$(ProjectDir)/README_en.md" "$(ProjectDir)/Dist/README_en.md"
-Copy "$(TargetPath)" "$(ProjectDir)/Dist/$(TargetFileName)"
-xcopy "$(ProjectDir)/.EditorHints" "$(ProjectDir)/Dist/.EditorHints" /E /I /Y</PostBuildEvent>
+    <PostBuildEvent>Copy "$(TargetPath)" "$(ProjectDir)/Dist/$(TargetFileName)"
+Copy "$(ProjectDir)/README.md" "$(ProjectDir)/Dist/Doc/README.md"
+Copy "$(ProjectDir)/README_en.md" "$(ProjectDir)/Dist/Doc/README_en.md"
+xcopy "$(ProjectDir)/.EditorHints" "$(ProjectDir)/Dist/Doc/.EditorHints" /E /I /Y
+xcopy "$(ProjectDir)/img" "$(ProjectDir)/Dist/Doc/img" /E /I /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>

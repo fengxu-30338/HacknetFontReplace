@@ -80,29 +80,31 @@ namespace HacknetFontReplace.Core
 
         private readonly Dictionary<string, FontSystem> _fontSystems = new Dictionary<string, FontSystem>();
 
-        public FontSystem GetActiveFontSystem()
+        public FontSystem GetFontSystem(string fontGroup)
         {
-            if (_fontSystems.TryGetValue(ActiveFontGroup, out var fontSystem))
+            if (_fontSystems.TryGetValue(fontGroup, out var fontSystem))
             {
                 return fontSystem;
             }
 
-            if (!FontGroups.TryGetValue(ActiveFontGroup, out var fontFileList))
+            if (!FontGroups.TryGetValue(fontGroup, out var fontFileList))
             {
-                throw new InvalidOperationException($"Not Find Font Group: '{ActiveFontGroup}'");
+                throw new InvalidOperationException($"Not Find Font Group: '{fontGroup}'");
             }
 
             if (!fontFileList.Any())
             {
-                throw new InvalidOperationException($"Font Group[{ActiveFontGroup}] Not Include Any Font File");
+                throw new InvalidOperationException($"Font Group[{fontGroup}] Not Include Any Font File");
             }
 
             fontSystem = new FontSystem();
             fontFileList.ForEach(filepath => fontSystem.AddFont(File.ReadAllBytes(filepath)));
-            _fontSystems[ActiveFontGroup] = fontSystem;
+            _fontSystems[fontGroup] = fontSystem;
 
             return fontSystem;
         }
+
+        public FontSystem GetActiveFontSystem() => GetFontSystem(ActiveFontGroup);
 
         private string FormatFontGroups()
         {

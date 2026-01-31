@@ -63,7 +63,9 @@ Hacknet模组字体切换支持
 
 
 
-## 多色字体
+## 特殊字体
+
+### 彩色字体
 
 您可以使用以下效果达到彩色字体
 
@@ -85,12 +87,55 @@ Hacknet模组字体切换支持
 4. 目前标记内只支持`color`属性，属性值有两种写法
    - 直接写颜色名，需要存在该颜色且首字母大写，如：Red，Green等
    - 写rgb或rgba格式，之间用空格隔开(**不允许使用逗号等其他分隔符**)
-
 5. 标记也可以写在所有定义文本内容的文件里如xml中的邮件定义或则是代码中
-
 6. 标记可以嵌套使用，内层标记包裹的文本自动继承外侧文本的颜色，同时您也可以单独设置内层文本的颜色
 
-**注意**：
+
+
+### 局部字体组
+
+您可以使用以下效果达到局部显示不同字体的方式
+
+```tex
+123邮件内容邮件内容{color: Red, fontGroup: desc}aa11 223{/}邮件内容邮件内容123
+邮件内容邮件内容邮件内容邮件内容邮件{fontGroup: desc}665 14{/}内容邮件内容邮件内容
+邮件内容邮件内容邮件内容邮件内容邮件内容邮件内容邮件内容
+{color: Red, fontGroup: desc}邮件内容邮件内容邮件内容邮件内容邮件内容邮件内容{color: Blue}邮件  23a   内容{/}你好{/}
+```
+
+效果如下：
+
+![](img/fontGroup.png)
+
+用法大致同彩色字体，在{fontGroup:  name}中定义需要显示的字体组名即可。
+
+组名在[配置文件](#配置文件) 中的`FontGroup`标签定义。
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<HacknetFontReplace>
+	<!-- ...省略部分配置... -->
+    
+	<!--定义字体组-->
+	<FontGroups>
+		<!--先定义的字体路径优先加载-->
+		<FontGroup Name="default">
+			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+		</FontGroup>
+
+		<FontGroup Name="desc">
+			<FontPath>Plugins/Font/SegoeKeycaps.ttf</FontPath>
+			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+		</FontGroup>
+	</FontGroups>
+</HacknetFontReplace>
+```
+
+注意格式需要严格按照上述书写，不能随意加双引号，**非JSON格式**
+
+
+
+### **注意**
 
 hacknet部分地方会自动拆分文本为多行，比如邮件中您定义的文本为`{}准备好了就发给我。{/}`，游戏内可能会拆分为两行如下
 
@@ -120,7 +165,7 @@ hacknet部分地方会自动拆分文本为多行，比如邮件中您定义的�
 
 ## 编辑器提示
 
-为了您的翻译体验，我建议您使用Visual Studio Code编辑器，因为它支持XML文件的语法高亮和智能提示。
+为了您的使用体验，我建议您使用Visual Studio Code编辑器，因为它支持XML文件的语法高亮和智能提示。
 
 您可以在Visual Studio Code中安装以下插件来获得更好的翻译体验：
 

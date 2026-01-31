@@ -17,7 +17,7 @@ namespace HacknetFontReplace
     {
         public const string ModGUID = "HacknetFontReplace-WEDF156WFWEF1WEFV15";
         public const string ModName = "HacknetFontReplace";
-        public const string ModVer = "1.0.0";
+        public const string ModVer = "1.0.1";
         public static HacknetFontReplacePlugin Instance { get; private set; }
         public static ManualLogSource Logger => Instance.Log;
         public override bool Load()

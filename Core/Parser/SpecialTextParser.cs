@@ -1,11 +1,15 @@
 ﻿using Microsoft.Xna.Framework;
+using Pathfinder.Util;
 using Sprache;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Pathfinder.Util;
+using System.Text.RegularExpressions;
+using FontStashSharp;
+using HarmonyLib;
 
 namespace HacknetFontReplace.Core.Parser
 {
@@ -97,6 +101,13 @@ namespace HacknetFontReplace.Core.Parser
                     _containsSpecial = true;
                     continue;
                 }
+
+                if (pair.Key == nameof(CharProp.fontGroup))
+                {
+                    chProp.fontGroup = pair.Value.Trim();
+                    _containsSpecial = true;
+                    continue;
+                }
             }
             PropStack.Push(chProp);
 
@@ -128,43 +139,109 @@ namespace HacknetFontReplace.Core.Parser
             return chars.Select(ch => new CharInfo(curChProp, ch));
         }
 
+        private SpecialFontParserResult ParseCharInfoToResult(List<CharInfo> charInfos)
+        {
+            if (!_containsSpecial)
+            {
+                var sb = new StringBuilder();
+                foreach (var charInfo in charInfos)
+                {
+                    sb.Append(charInfo.Char);
+                }
+
+                return new SpecialFontParserResult(true, sb.ToString(), false);
+            }
+
+            var groups = new List<Group<string, CharInfo>>();
+            foreach (var charInfo in charInfos)
+            {
+                if (groups.Count == 0)
+                {
+                    var group = new Group<string, CharInfo>(charInfo.CharPropInfo.fontGroup);
+                    groups.Add(group);
+                }
+
+                var lastGroup = groups.Last();
+                if (charInfo.CharPropInfo.fontGroup != lastGroup.Key)
+                {
+                    var group = new Group<string, CharInfo>(charInfo.CharPropInfo.fontGroup);
+                    groups.Add(group);
+                    lastGroup = group;
+                }
+
+                lastGroup.Elements.Add(charInfo);
+            }
+
+            var drawList = new List<DrawText>(groups.Count);
+            foreach (var group in groups)
+            {
+                var curGroup = group.ToList();
+                var sb = new StringBuilder();
+                foreach (var charInfo in group)
+                {
+                    sb.Append(charInfo.Char);
+                }
+
+                var drawText = new DrawText(sb.ToString(), curGroup.Select(chInfo => chInfo.CharPropInfo.color).ToArray(), group.Key);
+                if (IsDebug)
+                {
+                    Console.WriteLine("DrawText: " + drawText);
+                }
+                drawList.Add(drawText);
+            }
+
+            return new SpecialFontParserResult(true, drawList, _containsSpecial);
+        }
+
         public SpecialFontParserResult ParseText(string text)
         {
             _containsSpecial = false;
             PropStack.Clear();
             if (IsDebug)
             {
-                Console.WriteLine($"开始解析：[{text}]");
+                Console.WriteLine($@"开始解析：[{text}]");
             }
 
             try
             {
-                var chInfo = TextParser.End().Parse(text);
+                var chInfo = TextParser.End().Parse(text).ToList();
                 if (IsDebug)
                 {
-                    Console.WriteLine("======================== 解析结果 =========================");
+                    Console.WriteLine(@"======================== 解析结果 =========================");
                     foreach (var charInfo in chInfo)
                     {
-                        Console.WriteLine($"char:{charInfo.Char}, prop: {charInfo.CharPropInfo.color}");
+                        Console.WriteLine($@"char:{charInfo.Char}, prop: {charInfo.CharPropInfo}");
                     }
                 }
-                var sb = new StringBuilder();
-                var colors = new List<Color>(chInfo.Count());
-                foreach (var charInfo in chInfo)
-                {
-                    sb.Append(charInfo.Char);
-                    if (!char.IsWhiteSpace(charInfo.Char))
-                    {
-                        colors.Add(charInfo.CharPropInfo.color);
-                    }
-                }
-
-                return new SpecialFontParserResult(true, sb.ToString(), colors.ToArray(), _containsSpecial);
+                
+                return ParseCharInfoToResult(chInfo);
             }
             catch (Exception)
             {
-                return new SpecialFontParserResult(false, text, Array.Empty<Color>(), false);
+                return new SpecialFontParserResult(false, text, false);
             }
+        }
+
+        private class Group<K, E> : IGrouping<K,E>
+        {
+            public List<E> Elements { get; } = new List<E>();
+
+            public Group(K key)
+            {
+                this.Key = key;
+            }
+
+            public IEnumerator<E> GetEnumerator()
+            {
+                return Elements.GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+            public K Key { get; }
         }
     }
 
@@ -174,9 +251,11 @@ namespace HacknetFontReplace.Core.Parser
     {
         public Color color { get; set; }
 
+        public string fontGroup { get; set; }
+
         public object Clone()
         {
-            return new CharProp() { color = this.color };
+            return new CharProp() { color = this.color, fontGroup = this.fontGroup};
         }
 
         public void SetColor(string colorStr)
@@ -199,7 +278,7 @@ namespace HacknetFontReplace.Core.Parser
 
         public override string ToString()
         {
-            return $"CharProp@{{ color={color} }}";
+            return $"CharProp@{{ color={color}, fontGroup={fontGroup} }}";
         }
     }
 
@@ -216,6 +295,50 @@ namespace HacknetFontReplace.Core.Parser
         }
     }
 
+    public class DrawText
+    {
+        public string Text { get; }
+
+        private readonly Color[] _sourceColors;
+        public Color[] Colors { get; private set; }
+
+        public string FontGroup { get; }
+
+        public DrawText(string text, Color[] colors, string fontGroup)
+        {
+            Text = text;
+            _sourceColors = colors;
+            Colors = colors;
+            FontGroup = fontGroup;
+        }
+
+        private void ChangeRenderColor(DynamicSpriteFont font, Vector2 position)
+        {
+            var glyphs = font.GetGlyphs(Text, position);
+            var targetColors = new List<Color>(_sourceColors.Length);
+            for (var i = 0; i < glyphs.Count; i++)
+            {
+                var glyph = glyphs[i];
+                if (glyph.Bounds.Width > 0 && glyph.Bounds.Height > 0)
+                {
+                    targetColors.Add(_sourceColors[i]);
+                }
+            }
+
+            this.Colors = targetColors.ToArray();
+        }
+
+        public void ApplyFont(DynamicSpriteFont font, Vector2 position)
+        {
+            ChangeRenderColor(font, position);
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(DrawText)} => [{nameof(Text)}: {Text}, {nameof(FontGroup)}: {FontGroup}]";
+        }
+    }
+
     public class SpecialFontParserResult
     {
         public bool IsSuccess { get; set; }
@@ -224,15 +347,23 @@ namespace HacknetFontReplace.Core.Parser
 
         public string Text { get; set; }
 
-        public Color[] Colors { get; set; }
+        public List<DrawText> DrawTexts { get; set; } = new List<DrawText>();
 
         public DateTime AddToCacheTime { get; set; }
 
-        public SpecialFontParserResult(bool isSuccess, string text, Color[] colors, bool isSpecial)
+        public SpecialFontParserResult() { }
+
+        public SpecialFontParserResult(bool isSuccess, List<DrawText> drawTexts, bool isSpecial)
+        {
+            IsSuccess = isSuccess;
+            DrawTexts = drawTexts;
+            IsSpecial = isSpecial;
+        }
+
+        public SpecialFontParserResult(bool isSuccess, string text, bool isSpecial)
         {
             IsSuccess = isSuccess;
             Text = text;
-            Colors = colors;
             IsSpecial = isSpecial;
         }
     }
