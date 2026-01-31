@@ -44,7 +44,7 @@
     </Node>
 
     <Node name="HacknetFontReplace.FontGroups.FontGroup.FontPath" enable="true" multi="true" desc="定义一个属于该组的字体文件路径">
-        <Content default="FontFilepath" desc="字体文件路径" hint="Path" diag="E" >Plugins/Font/*.ttf</Content>
+        <Content default="FontFilepath" desc="字体文件路径" hint="Path" linkBy="path" diag="E" >Plugins/Font/*.ttf</Content>
     </Node>
 
     <Node name="HacknetFontReplace.ActiveFontGroup" enable="true" multi="false" desc="激活的字体组名">
