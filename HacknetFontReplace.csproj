@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{81C1721A-4475-4877-954B-FF6F0D2CEC8E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>HacknetFontReplace</RootNamespace>
+    <AssemblyName>HacknetFontReplace</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>libs\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Core">
+      <HintPath>libs\BepInEx.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Hacknet">
+      <HintPath>libs\BepInEx.Hacknet.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Cyotek.Drawing.BitmapFont">
+      <HintPath>libs\Cyotek.Drawing.BitmapFont.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="FNA">
+      <HintPath>libs\FNA.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="FontStashSharp.Base">
+      <HintPath>libs\FontStashSharp.Base.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="FontStashSharp.FNA">
+      <HintPath>libs\FontStashSharp.FNA.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="FontStashSharp.Rasterizers.StbTrueTypeSharp">
+      <HintPath>libs\FontStashSharp.Rasterizers.StbTrueTypeSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="HacknetPathfinder">
+      <HintPath>libs\HacknetPathfinder.exe</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil">
+      <HintPath>libs\Mono.Cecil.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MonoMod.RuntimeDetour">
+      <HintPath>libs\MonoMod.RuntimeDetour.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MonoMod.Utils">
+      <HintPath>libs\MonoMod.Utils.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="PathfinderAPI">
+      <HintPath>libs\PathfinderAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sprache">
+      <HintPath>libs\Sprache.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="StbImageSharp">
+      <HintPath>libs\StbImageSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="StbTrueTypeSharp">
+      <HintPath>libs\StbTrueTypeSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Core\Actions\ChangeActiveFontGroup.cs" />
+    <Compile Include="Core\FontReplaceConfig.cs" />
+    <Compile Include="Core\GameFontReplace.cs" />
+    <Compile Include="Core\GameSaveAttach.cs" />
+    <Compile Include="Core\Parser\SpecialTextCache.cs" />
+    <Compile Include="Core\Parser\SpecialTextParser.cs" />
+    <Compile Include="HacknetFontReplacePlugin.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resource.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resource.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Utils\AssemblyPathHelper.cs" />
+    <Compile Include="Utils\StringExtension.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resource.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resource.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>Copy "$(ProjectDir)/README.md" "$(ProjectDir)/Dist/README.md"
+Copy "$(ProjectDir)/README_en.md" "$(ProjectDir)/Dist/README_en.md"
+Copy "$(TargetPath)" "$(ProjectDir)/Dist/$(TargetFileName)"
+xcopy "$(ProjectDir)/.EditorHints" "$(ProjectDir)/Dist/.EditorHints" /E /I /Y</PostBuildEvent>
+  </PropertyGroup>
+</Project>

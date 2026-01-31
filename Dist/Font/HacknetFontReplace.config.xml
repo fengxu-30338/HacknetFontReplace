@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HacknetFontReplace>
+	<!--大字体；如Display面板中的连接到xxx字样-->
+	<LargeFontSize>34</LargeFontSize>
+	<!--小字体；如您是本系统管理员字样-->
+	<SmallFontSize>20</SmallFontSize>
+	<!--UI字体大小-->
+	<UIFontSize>18</UIFontSize>
+	<!--左上角Ram模块，AppBar等字样字体大小-->
+	<DetailFontSize>14</DetailFontSize>
+	<!--修改设置字体大小时的增量改变-->
+	<ChangeFontSizeInterval>2</ChangeFontSizeInterval>
+	<!--是否开启多色字体解析-->
+	<OpenMultiColorFontParse>false</OpenMultiColorFontParse>
+	<!--定义字体组-->
+	<FontGroups>
+		<!--先定义的字体路径优先加载-->
+		<FontGroup Name="default">
+			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+			<FontPath>Plugins/Font/SegoeKeycaps.ttf</FontPath>
+		</FontGroup>
+
+		<FontGroup Name="desc">
+			<FontPath>Plugins/Font/SegoeKeycaps.ttf</FontPath>
+			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+		</FontGroup>
+	</FontGroups>
+	<!--
+		当前激活的字体组
+		可在扩展中通过Action切换激活的字体组: <ChangeActiveFontGroup Name="desc" />
+		激活后存档游戏后重新进入依然有效
+	-->
+	<ActiveFontGroup>default</ActiveFontGroup>
+</HacknetFontReplace>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HacknetEditorHint>
+    <Node name="HacknetFontReplace" enable="true" multi="false" desc="定义HacknetFontReplace Mod的配置文件信息" fileTriggerPattern="Plugins/Font/HacknetFontReplace.config.xml" >
+        <Content />
+    </Node>
+
+    <Node name="HacknetFontReplace.LargeFontSize" enable="true" multi="false" desc="大字体；如Display面板中的连接到xxx字样">
+        <Content default="34" desc="字体大小" />
+    </Node>
+
+    <Node name="HacknetFontReplace.SmallFontSize" enable="true" multi="false" desc="小字体；如您是本系统管理员字样">
+        <Content default="20" desc="字体大小" />
+    </Node>
+
+    <Node name="HacknetFontReplace.UIFontSize" enable="true" multi="false" desc="UI字体大小">
+        <Content default="18" desc="字体大小" />
+    </Node>
+
+    <Node name="HacknetFontReplace.DetailFontSize" enable="true" multi="false" desc="左上角Ram模块，AppBar等字样字体大小">
+        <Content default="14" desc="字体大小" />
+    </Node>
+
+    <Node name="HacknetFontReplace.ChangeFontSizeInterval" enable="true" multi="false" desc="修改设置字体大小时的增量改变">
+        <Content default="2" desc="增量大小" />
+    </Node>
+
+    <Node name="HacknetFontReplace.OpenMultiColorFontParse" enable="true" multi="false" desc="是否开启彩色字体解析">
+        <Content default="false" desc="是否开启彩色字体解析" hint="enum" >
+            <Enums>
+                <Enum desc="开启">true</Enum>
+                <Enum desc="关闭">false</Enum>
+            </Enums>
+            <Diag type="E" ignoreCaseForEnum="true"/>
+        </Content>
+    </Node>
+
+    <Node name="HacknetFontReplace.FontGroups" enable="true" multi="false" desc="定义字体组集合">
+        <Content />
+    </Node>
+
+    <Node name="HacknetFontReplace.FontGroups.FontGroup" enable="true" multi="true" desc="定义一个字体组">
+        <Content />
+        <Attribute name="Name" required="true" default="groupName" desc="组名" hint="enum" />
+    </Node>
+
+    <Node name="HacknetFontReplace.FontGroups.FontGroup.FontPath" enable="true" multi="true" desc="定义一个属于该组的字体文件路径">
+        <Content default="FontFilepath" desc="字体文件路径" hint="Path" diag="E" >Plugins/Font/*.ttf</Content>
+    </Node>
+
+    <Node name="HacknetFontReplace.ActiveFontGroup" enable="true" multi="false" desc="激活的字体组名">
+        <Content default="" desc="字体组名" hint="js" diag="E" >
+            (function(actNode, hacknetNodeHolder){
+                var fontGroups = actNode.node.root.GetNodesByNodePath("HacknetFontReplace.FontGroups.FontGroup");
+                if(fontGroups.length &gt; 0){
+                    return fontGroups.map(fontGroup =&gt; {
+                        return {value: fontGroup.GetAttr('Name'), desc: '字体组名'}
+                    });
+                }
+            });
+
+            <LinkByCollection>
+                <Item linkBy="xml" 
+                    linkByValuePattern="(.*)" 
+                    overrideValue="Plugins/Font/HacknetFontReplace.config.xml|HacknetFontReplace.FontGroups.FontGroup|{&quot;Name&quot;: &quot;$(res)&quot;}"  />
+            </LinkByCollection>
+        </Content>
+    </Node>
+
+
+    <Node name="ConditionalActions.*.ChangeActiveFontGroup|CustomFaction.Action.ChangeActiveFontGroup" enable="true" multi="true" desc="更改激活的字体组（来源：HacknetFontReplace Mod功能）">
+        <Attribute name="Name" required="true" default="" desc="待激活的字体组名" hint="js" diag="E" >
+            (function(actNode, hacknetNodeHolder){
+                const fontGroupNode = hacknetNodeHolder.GetOtherNodes().filter(node =&gt; node.HacknetFontReplace)[0];
+                const names = [];
+                try{
+                    const fontGroups = fontGroupNode.HacknetFontReplace.FontGroups.FontGroup;
+                    const groupNodes = [];
+                    if (Array.isArray(fontGroups)) {
+                        groupNodes.push(...fontGroups);
+                    } else {
+                        groupNodes.push(fontGroups);
+                    }
+
+                    groupNodes.forEach(node =&gt; names.push(node.Name));
+
+                    return names.map(name =&gt; ({value: name, desc: '字体组名'}));
+                } catch(err) {
+                    // hacknetNodeHolder.Log(err);
+                }
+            });
+
+            <LinkByCollection>
+                <Item linkBy="xml" 
+                    linkByValuePattern="(.*)" 
+                    overrideValue="Plugins/Font/HacknetFontReplace.config.xml|HacknetFontReplace.FontGroups.FontGroup|{&quot;Name&quot;: &quot;$(res)&quot;}"  />
+            </LinkByCollection>
+        </Attribute>
+    </Node>
+
+</HacknetEditorHint>
