@@ -1,7 +1,7 @@
 # HacknetFontReplace
 Hacknet模组字体切换支持
 
-[English Version](README_en.md)
+[English](README_en.md)
 
 
 
@@ -36,7 +36,7 @@ Hacknet模组字体切换支持
 	<DetailFontSize>14</DetailFontSize>
 	<!--修改设置字体大小时的增量改变-->
 	<ChangeFontSizeInterval>2</ChangeFontSizeInterval>
-	<!--是否开启多色字体解析-->
+	<!--是否开启特殊字体解析-->
 	<OpenMultiColorFontParse>false</OpenMultiColorFontParse>
 	<!--定义字体组-->
 	<FontGroups>
@@ -81,7 +81,7 @@ Hacknet模组字体切换支持
 
 > **用法规则**
 
-1. 首先您需要在配置文件中打开对多色字体的支持：OpenMultiColorFontParse=true
+1. 首先您需要在配置文件中打开对多色字体的支持!!!
 2. 您需要将需要渲染的文本包裹在{}{/}标记内部就像xml标签一样
 3. 一对{}{/}标记不能跨多行，否则无效（`游戏原因具体看下面的注意事项`）
 4. 目前标记内只支持`color`属性，属性值有两种写法
@@ -93,6 +93,8 @@ Hacknet模组字体切换支持
 
 
 ### 局部字体组
+
+`您需要在配置文件中开启特殊字体解析`
 
 您可以使用以下效果达到局部显示不同字体的方式
 
@@ -115,6 +117,8 @@ Hacknet模组字体切换支持
 <?xml version="1.0" encoding="utf-8"?>
 <HacknetFontReplace>
 	<!-- ...省略部分配置... -->
+    <!--是否开启特殊字体解析-->
+	<OpenMultiColorFontParse>true</OpenMultiColorFontParse>
     
 	<!--定义字体组-->
 	<FontGroups>
@@ -132,6 +136,82 @@ Hacknet模组字体切换支持
 ```
 
 注意格式需要严格按照上述书写，不能随意加双引号，**非JSON格式**
+
+
+
+### 嵌入图片
+
+`您需要在配置文件中开启特殊字体解析`
+
+您可以使用以下效果达到嵌入图片的效果
+
+```tex
+图片：{img: test, scale: 0.5}${/}
+```
+
+效果如下
+
+![](./img/img.png)
+
+
+
+用法大致同彩色字体，在{img:  key}中定义需要显示的图片key即可，使用后{}{/}中的每一个字符都会被替换为图片
+
+key在[配置文件](#配置文件) 中的`Image`标签定义。
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<HacknetFontReplace>
+	<!-- ...省略部分配置... -->
+    <!--是否开启特殊字体解析-->
+	<OpenMultiColorFontParse>true</OpenMultiColorFontParse>
+    
+    <!--定义图像组-->
+	<Images>
+		<!-- 定义图像 key则为特殊字体表达式中img的值，图片路径是以扩展根目录为基准的相对路径 -->
+		<!-- <Image Key="test">Image/test.png</Image> -->
+	</Images>
+</HacknetFontReplace>
+```
+
+
+
+### 字体/图片的旋转与缩放
+
+`您需要在配置文件中开启特殊字体解析`
+
+您可以使用以下效果达到嵌入图片的效果
+
+```tex
+图片：{img: test, scale: 1.5, rotate: 15}${/}
+```
+
+- img: 图片Key，在配置文件中定义
+- scale: 放缩比例，太大会导致游戏计算宽度超出，导致出现换行截断特殊字符语法或其他bug，请注意！
+- rotate: 旋转角度，会自动保证旋转后不占用上一行的空间
+
+
+
+效果如下
+
+![](./img/style.png)
+
+
+
+**注意：**如果您缩放的过大会导致游戏计算字体宽度时超出导致字体解析被截断，当您发现出现未知换行时您可以考虑到此方面的原因。
+
+您需要在配置文件中开启特殊字体解析后才可生效
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<HacknetFontReplace>
+	<!-- ...省略部分配置... -->
+    <!--是否开启特殊字体解析-->
+	<OpenMultiColorFontParse>true</OpenMultiColorFontParse>
+</HacknetFontReplace>
+```
+
+
 
 
 
@@ -172,7 +252,7 @@ hacknet部分地方会自动拆分文本为多行，比如邮件中您定义的�
 - XML Tools: 提供XML文件的语法高亮和智能提示
 - [HacknetExtensionHelper](https://marketplace.visualstudio.com/items?itemName=fengxu30338.hacknetextensionhelper): 提供Hacknet扩展相关的智能提示
 
-如果您安装的HacknetExtensionHelper插件版本大于等于`0.3.3`，您可以在扩展根目录的Hacknet-EditorHint.xml文件中通过`Include`标签引用本Mod的[提示文件](.EditorHints/HacknetFontReplace.xml)
+如果您安装的HacknetExtensionHelper插件版本大于等于`0.3.3`，您可以在扩展根目录的`Hacknet-EditorHint.xml`文件中通过`Include`标签引用本Mod的[提示文件](.EditorHints/HacknetFontReplace.xml)
 
 ```xml
 <!-- 扩展根目录下的Hacknet-EditorHint.xml-->

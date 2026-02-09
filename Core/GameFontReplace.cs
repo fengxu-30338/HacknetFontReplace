@@ -1,17 +1,18 @@
-﻿using System;
-using FontStashSharp;
+﻿using FontStashSharp;
 using Hacknet;
 using Hacknet.Localization;
+using HacknetFontReplace.Core.Parser;
 using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using Sprache;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using HacknetFontReplace.Core.Parser;
 
 namespace HacknetFontReplace.Core
 {
@@ -116,6 +117,16 @@ namespace HacknetFontReplace.Core
                 defaultInstalled = true;
             }
         }
+        private static Vector2 CalculateRotatedDimensions(Vector2 size, double rotate)
+        {
+            var cosTheta = Math.Cos(rotate);
+            var sinTheta = Math.Sin(rotate);
+
+            var horizontal = Math.Abs(size.X * cosTheta) + Math.Abs(size.Y * sinTheta);
+            var vertical = Math.Abs(size.X * sinTheta) + Math.Abs(size.Y * cosTheta);
+
+            return new Vector2((float)horizontal, (float)vertical);
+        }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(SpriteFont), nameof(SpriteFont.MeasureString), typeof(string))]
@@ -129,12 +140,47 @@ namespace HacknetFontReplace.Core
             if (!CheckNeedHandleSpecialText(text))
             {
                 __result = dynamicSpriteFont.MeasureString(text);
+                return false;
             }
-            else
+
+            HandleSpecialText(text, out var parserResult);
+            if (!parserResult.IsSuccess || !parserResult.IsSpecial)
             {
-                HandleSpecialText(text, out var parserResult);
-                __result = dynamicSpriteFont.MeasureString(parserResult.Text);
+                __result = dynamicSpriteFont.MeasureString(text);
+                return false;
             }
+
+
+            var res = new Vector2();
+            foreach (var drawText in parserResult.DrawTexts)
+            {
+                var scale = new Vector2(drawText.Scale);
+                if (drawText.Img != null)
+                {
+                    var imgSize = new Vector2(drawText.Img.Width, drawText.Img.Height);
+                    var finalSize = CalculateRotatedDimensions(imgSize * drawText.Scale, drawText.Rotate);
+                    res.X += finalSize.X;
+                    res.Y = Math.Max(res.Y, finalSize.Y);
+                    continue;
+                }
+
+                var dsf = GetDynamicSpriteFont(drawText.FontGroup, __instance);
+                if (dsf == null)
+                {
+                    var tmpRes = dynamicSpriteFont.MeasureString(drawText.Text, scale);
+                    res.X += tmpRes.X;
+                    res.Y = Math.Max(res.Y, tmpRes.Y);
+                    continue;
+                }
+
+                var size = dsf.MeasureString(drawText.Text, scale);
+                drawText.ApplyFont(dsf, new Vector2());
+                size = CalculateRotatedDimensions(size, drawText.Rotate);
+                res.X += size.X;
+                res.Y = Math.Max(res.Y, size.Y);
+            }
+
+            __result = res;
 
             return false;
         }
@@ -143,23 +189,7 @@ namespace HacknetFontReplace.Core
         [HarmonyPatch(typeof(SpriteFont), nameof(SpriteFont.MeasureString), typeof(StringBuilder))]
         private static bool PrefixMeasureStringBuilder(SpriteFont __instance, StringBuilder text, ref Vector2 __result)
         {
-            if (!defaultFontMap.TryGetValue(__instance, out var dynamicSpriteFont))
-            {
-                return true;
-            }
-
-            var content = text.ToString();
-
-            if (!CheckNeedHandleSpecialText(content))
-            {
-                __result = dynamicSpriteFont.MeasureString(text);
-            }
-            else
-            {
-                HandleSpecialText(content, out var parserResult);
-                __result = dynamicSpriteFont.MeasureString(parserResult.Text);
-            }
-
+            __instance.MeasureString(text.ToString());
             return false;
         }
 
@@ -169,9 +199,10 @@ namespace HacknetFontReplace.Core
                    text.StartsWith(SpecialTextParser.FirstChar);
         }
 
-        private static void HandleSpecialText(string text, out SpecialFontParserResult parserResult, bool addToCache = false)
+        private static void HandleSpecialText(string text, out SpecialFontParserResult parserResult, bool addToCache = false, string attachKey="")
         {
-            if (specialTextCache.TryGetSpecialTextResult(text, out parserResult))
+            var cacheKey = text + attachKey;
+            if (specialTextCache.TryGetSpecialTextResult(cacheKey, out parserResult))
             {
                 return;
             }
@@ -180,7 +211,7 @@ namespace HacknetFontReplace.Core
             parserResult = specialTextParser.ParseText(text);
             if (text.Length >= AddToCacheMinLength && addToCache)
             {
-                specialTextCache.AddToCache(text, parserResult);
+                specialTextCache.AddToCache(cacheKey, parserResult);
             }
         }
 
@@ -223,39 +254,41 @@ namespace HacknetFontReplace.Core
 
             specialTextParser.DefaultCharProp.color = color;
             specialTextParser.DefaultCharProp.fontGroup = fontReplaceConfig.ActiveFontGroup;
-            HandleSpecialText(text, out var parserResult, true);
+            specialTextParser.DefaultCharProp.rotate = rotation;
+            HandleSpecialText(text, out var parserResult, true, attachKey: $"{color}-{position}-{rotation}");
             if (!parserResult.IsSuccess || !parserResult.IsSpecial)
             {
                 __instance.DrawString(dynamicSpriteFont, parserResult.Text, position, color, rotation, origin, scale, layerDepth);
                 return false;
             }
 
-            if (parserResult.DrawTexts.Count == 1)
-            {
-                var drawText = parserResult.DrawTexts[0];
-                var dsf = GetDynamicSpriteFont(drawText.FontGroup, spriteFont);
-                if (dsf == null)
-                {
-                    return true;
-                }
-
-                drawText.ApplyFont(dsf, position);
-                __instance.DrawString(dsf, drawText.Text, position, drawText.Colors, rotation, origin, scale, layerDepth);
-                return false;
-            }
 
             var pos = position;
             foreach (var drawText in parserResult.DrawTexts)
             {
+                if (drawText.Img != null)
+                {
+                    var imgSize = new Vector2(drawText.Img.Width, drawText.Img.Height);
+                    var rotateSize = CalculateRotatedDimensions(imgSize * drawText.Scale, drawText.Rotate);
+                    var realPos = pos + rotateSize / 2f;
+                    __instance.Draw(drawText.Img, realPos, null, Color.White, drawText.Rotate, imgSize / 2.0f, drawText.Scale, SpriteEffects.None, layerDepth);
+                    pos.X += rotateSize.X;
+                    continue;
+                }
+
                 var dsf = GetDynamicSpriteFont(drawText.FontGroup, spriteFont);
                 if (dsf == null)
                 {
                     __instance.DrawString(dynamicSpriteFont, drawText.Text, position, color, rotation, origin, scale, layerDepth);
                     continue;
                 }
-                var size = dsf.MeasureString(drawText.Text, scale);
+
+                var size = dsf.MeasureString(drawText.Text, scale * drawText.Scale);
                 drawText.ApplyFont(dsf, position);
-                __instance.DrawString(dsf, drawText.Text, pos, drawText.Colors, rotation, origin, scale, layerDepth);
+                size = CalculateRotatedDimensions(size, drawText.Rotate);
+                // Console.WriteLine(drawText.Text);
+                // Console.WriteLine(drawText.Colors[0]);
+                __instance.DrawString(dsf, drawText.Text, pos, drawText.Colors, drawText.Rotate, origin, scale * drawText.Scale, layerDepth);
                 pos.X += size.X;
             }
 

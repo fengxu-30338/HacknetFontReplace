@@ -44,7 +44,7 @@
     </Node>
 
     <Node name="HacknetFontReplace.FontGroups.FontGroup.FontPath" enable="true" multi="true" desc="定义一个属于该组的字体文件路径">
-        <Content default="FontFilepath" desc="字体文件路径" hint="Path" linkBy="path" diag="E" >Plugins/Font/*.ttf</Content>
+        <Content default="FontFilepath" desc="字体文件路径" hint="Path" linkBy="path"  diag="E">Plugins/Font/*.ttf</Content>
     </Node>
 
     <Node name="HacknetFontReplace.ActiveFontGroup" enable="true" multi="false" desc="激活的字体组名">
@@ -96,5 +96,15 @@
             </LinkByCollection>
         </Attribute>
     </Node>
+
+    <Node name="HacknetFontReplace.Images" enable="true" multi="false" desc="定义图像组">
+        <Content />
+    </Node>
+
+    <Node name="HacknetFontReplace.Images.Image" enable="true" multi="true" desc="定义图像组">
+        <Content desc="图像路径" hint="Path" linkBy="path" diag="E" default="path" >**/*.{jpg,jpeg,png}</Content>
+        <Attribute name="Key" required="true" default="" desc="该字体在特殊字体表达式中的标识符" />
+    </Node>
+
 
 </HacknetEditorHint>

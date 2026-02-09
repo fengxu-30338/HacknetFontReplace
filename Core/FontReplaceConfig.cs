@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using FontStashSharp;
+using Hacknet;
+using Microsoft.Xna.Framework.Graphics;
 using Pathfinder.Util;
 using Pathfinder.Util.XML;
 
@@ -49,7 +51,12 @@ namespace HacknetFontReplace.Core
         /// <summary>
         /// 组名->list(字体路径列表)
         /// </summary>
-        public Dictionary<string, List<string>> FontGroups = new Dictionary<string, List<string>>();
+        public Dictionary<string, List<string>> FontGroups { get; } = new Dictionary<string, List<string>>();
+
+        /// <summary>
+        /// img key -> 路径
+        /// </summary>
+        public Dictionary<string, string> ImgPathDict { get; } = new Dictionary<string, string>();
 
         
         private string _activeFontGroup = string.Empty;
@@ -79,6 +86,34 @@ namespace HacknetFontReplace.Core
         public event Action<string> OnActiveFontGroupChanged; 
 
         private readonly Dictionary<string, FontSystem> _fontSystems = new Dictionary<string, FontSystem>();
+
+        private readonly Dictionary<string, Texture2D> _imgTexture2Ds = new Dictionary<string, Texture2D>();
+
+        public Texture2D GetImgTexture(string imgKey)
+        {
+            if (_imgTexture2Ds.TryGetValue(imgKey, out var texture))
+            {
+                return texture;
+            }
+
+            if (!ImgPathDict.TryGetValue(imgKey, out var imgPath))
+            {
+                throw new InvalidOperationException($"Not Find Img Key: '{imgKey}'");
+            }
+
+            if (!File.Exists(imgPath))
+            {
+                throw new InvalidOperationException($"Img File Not Found: '{imgPath}'");
+            }
+
+            using (var fs = File.OpenRead(imgPath))
+            {
+                texture = Texture2D.FromStream(Game1.singleton.spriteBatch.GraphicsDevice, fs);
+                _imgTexture2Ds[imgKey] = texture;
+            }
+
+            return texture;
+        }
 
         public FontSystem GetFontSystem(string fontGroup)
         {
@@ -219,6 +254,29 @@ namespace HacknetFontReplace.Core
                 {
                     config.ActiveFontGroup = info.Content.Trim();
                 }
+            }, ParseOption.ParseInterior);
+
+            eventExecutor.RegisterExecutor("HacknetFontReplace.Images.Image", (exec, info) =>
+            {
+                var key = info.Attributes.GetString("Key");
+                var path = info.Content;
+                if (!key.HasContent())
+                {
+                    throw new InvalidOperationException("Image key is missing");
+                }
+
+                if (!path.HasContent())
+                {
+                    throw new InvalidOperationException("Image path is missing");
+                }
+
+                path = Path.Combine(ExtensionLoader.ActiveExtensionInfo.FolderPath, path);
+                if (!File.Exists(path))
+                {
+                    throw new FileNotFoundException($"ImageFile:'{path}' Not Find");
+                }
+
+                config.ImgPathDict[key] = path;
             }, ParseOption.ParseInterior);
 
             eventExecutor.Parse();

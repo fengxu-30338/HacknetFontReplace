@@ -1,4 +1,7 @@
-﻿using Microsoft.Xna.Framework;
+﻿using FontStashSharp;
+using HarmonyLib;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Pathfinder.Util;
 using Sprache;
 using System;
@@ -8,8 +11,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using FontStashSharp;
-using HarmonyLib;
 
 namespace HacknetFontReplace.Core.Parser
 {
@@ -24,7 +25,7 @@ namespace HacknetFontReplace.Core.Parser
         private static readonly Parser<KeyValuePair<string, string>> PropContentParse =
             from key in Parse.LetterOrDigit.AtLeastOnce().Token().Text()
             from _ in Parse.Char(':').Token()
-            from value in Parse.Char(ch => char.IsLetterOrDigit(ch) || ch == ' ', "prop value").AtLeastOnce().Token().Text()
+            from value in Parse.Char(ch => char.IsLetterOrDigit(ch) || ch == ' ' || ch == '.' || ch == '-', "prop value").AtLeastOnce().Token().Text()
             select new KeyValuePair<string, string>(key, value);
 
         private static readonly Parser<IEnumerable<KeyValuePair<string, string>>> MultiPropContentParse =
@@ -108,6 +109,27 @@ namespace HacknetFontReplace.Core.Parser
                     _containsSpecial = true;
                     continue;
                 }
+
+                if (pair.Key == nameof(CharProp.img))
+                {
+                    chProp.img = pair.Value.Trim();
+                    _containsSpecial = true;
+                    continue;
+                }
+
+                if (pair.Key == nameof(CharProp.scale))
+                {
+                    chProp.scale = float.Parse(pair.Value.Trim());
+                    _containsSpecial = true;
+                    continue;
+                }
+
+                if (pair.Key == nameof(CharProp.rotate))
+                {
+                    chProp.SetRotateByDeg(float.Parse(pair.Value.Trim()));
+                    _containsSpecial = true;
+                    continue;
+                }
             }
             PropStack.Push(chProp);
 
@@ -139,6 +161,25 @@ namespace HacknetFontReplace.Core.Parser
             return chars.Select(ch => new CharInfo(curChProp, ch));
         }
 
+        private static bool CheckCharPropIsSameGroup(CharProp current, CharProp last)
+        {
+            // 需要绘制图像的字符单独成一组
+            if (!string.IsNullOrWhiteSpace(current.img))
+            {
+                return false;
+            }
+
+            const float epsilon = 1e-5f;
+            if (Math.Abs(current.scale - last.scale) > epsilon ||
+                Math.Abs(current.rotate - last.rotate) > epsilon ||
+                current.fontGroup != last.fontGroup)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         private SpecialFontParserResult ParseCharInfoToResult(List<CharInfo> charInfos)
         {
             if (!_containsSpecial)
@@ -159,10 +200,13 @@ namespace HacknetFontReplace.Core.Parser
                 {
                     var group = new Group<string, CharInfo>(charInfo.CharPropInfo.fontGroup);
                     groups.Add(group);
+                    group.Elements.Add(charInfo);
+                    continue;
                 }
 
                 var lastGroup = groups.Last();
-                if (charInfo.CharPropInfo.fontGroup != lastGroup.Key)
+                var lastCharInfo = lastGroup.First();
+                if (!CheckCharPropIsSameGroup(charInfo.CharPropInfo, lastCharInfo.CharPropInfo))
                 {
                     var group = new Group<string, CharInfo>(charInfo.CharPropInfo.fontGroup);
                     groups.Add(group);
@@ -182,7 +226,14 @@ namespace HacknetFontReplace.Core.Parser
                     sb.Append(charInfo.Char);
                 }
 
-                var drawText = new DrawText(sb.ToString(), curGroup.Select(chInfo => chInfo.CharPropInfo.color).ToArray(), group.Key);
+                var img = group.FirstOrDefault()?.CharPropInfo.img;
+                var drawText = new DrawText(sb.ToString(), 
+                    curGroup.Select(chInfo => chInfo.CharPropInfo.color).ToArray(), 
+                        group.Key, 
+                    string.IsNullOrWhiteSpace(img) ? null : GameFontReplace.FontConfig.GetImgTexture(img),
+                    group.First().CharPropInfo.scale,
+                    group.First().CharPropInfo.rotate
+                    );
                 if (IsDebug)
                 {
                     Console.WriteLine("DrawText: " + drawText);
@@ -253,9 +304,16 @@ namespace HacknetFontReplace.Core.Parser
 
         public string fontGroup { get; set; }
 
+        public float scale { get; set; } = 1f;
+
+        public float rotate { get; set; } = 0f;
+
+        // 非路径而是配置文件中定义的img的key,且该属性不可被继承
+        public string img { get; set; }
+
         public object Clone()
         {
-            return new CharProp() { color = this.color, fontGroup = this.fontGroup};
+            return new CharProp() { color = this.color, fontGroup = this.fontGroup, scale = this.scale, rotate = this.rotate };
         }
 
         public void SetColor(string colorStr)
@@ -276,9 +334,14 @@ namespace HacknetFontReplace.Core.Parser
             }
         }
 
+        public void SetRotateByDeg(float degrees)
+        {
+            this.rotate = MathHelper.ToRadians(degrees);
+        }
+
         public override string ToString()
         {
-            return $"CharProp@{{ color={color}, fontGroup={fontGroup} }}";
+            return $"CharProp@{{ color={color}, fontGroup={fontGroup}, img={img}, scale={scale}, rotate={rotate} }}";
         }
     }
 
@@ -304,16 +367,30 @@ namespace HacknetFontReplace.Core.Parser
 
         public string FontGroup { get; }
 
-        public DrawText(string text, Color[] colors, string fontGroup)
+        public float Scale { get; }
+
+        public float Rotate { get; }
+
+        // 待绘制的图像的key,存在该属性时Text与Colors属性不再有效
+        public Texture2D Img { get; set; }
+
+        public DrawText(string text, Color[] colors, string fontGroup, Texture2D img, float scale, float rotate)
         {
             Text = text;
             _sourceColors = colors;
             Colors = colors;
             FontGroup = fontGroup;
+            Scale = scale;
+            Rotate = rotate;
+            Img = img;
         }
 
         private void ChangeRenderColor(DynamicSpriteFont font, Vector2 position)
         {
+            if (Img != null)
+            {
+                return;
+            }
             var glyphs = font.GetGlyphs(Text, position);
             var targetColors = new List<Color>(_sourceColors.Length);
             for (var i = 0; i < glyphs.Count; i++)
@@ -335,7 +412,7 @@ namespace HacknetFontReplace.Core.Parser
 
         public override string ToString()
         {
-            return $"{nameof(DrawText)} => [{nameof(Text)}: {Text}, {nameof(FontGroup)}: {FontGroup}]";
+            return $"{nameof(DrawText)} => [{nameof(Text)}: {Text}, {nameof(FontGroup)}: {FontGroup}, {nameof(Img)}: {Img}, {nameof(Scale)}: {Scale}, {nameof(Rotate)}: {Rotate}]";
         }
     }
 

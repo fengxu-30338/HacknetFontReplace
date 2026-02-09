@@ -10,7 +10,7 @@
 	<DetailFontSize>14</DetailFontSize>
 	<!--修改设置字体大小时的增量改变-->
 	<ChangeFontSizeInterval>2</ChangeFontSizeInterval>
-	<!--是否开启多色字体解析-->
+	<!--是否开启特殊字体解析-->
 	<OpenMultiColorFontParse>false</OpenMultiColorFontParse>
 	<!--定义字体组-->
 	<FontGroups>
@@ -31,4 +31,11 @@
 		激活后存档游戏后重新进入依然有效
 	-->
 	<ActiveFontGroup>default</ActiveFontGroup>
+
+
+	<!--定义图像组-->
+	<Images>
+		<!-- 定义图像 key则为特殊字体表达式中img的值 -->
+		<!-- <Image Key="test">Plugins/Image/test.png</Image> -->
+	</Images>
 </HacknetFontReplace>
