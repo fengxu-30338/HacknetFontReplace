@@ -17,12 +17,14 @@
 		<!--先定义的字体路径优先加载-->
 		<FontGroup Name="default">
 			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+			<FontPath>Plugins/Font/OpenMoji-Black.ttf</FontPath>
 			<FontPath>Plugins/Font/SegoeKeycaps.ttf</FontPath>
 		</FontGroup>
 
 		<FontGroup Name="desc">
 			<FontPath>Plugins/Font/SegoeKeycaps.ttf</FontPath>
 			<FontPath>Plugins/Font/HarmonyOS_SansSC_Regular.ttf</FontPath>
+			<FontPath>Plugins/Font/OpenMoji-Black.ttf</FontPath>
 		</FontGroup>
 	</FontGroups>
 	<!--

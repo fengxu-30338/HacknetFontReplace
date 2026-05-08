@@ -101,6 +101,31 @@ namespace HacknetFontReplace.Core
             });
         }
 
+        private static string SanitizeSurrogates(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            var sb = new StringBuilder(input.Length);
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (char.IsHighSurrogate(c))
+                {
+                    if (i + 1 < input.Length && char.IsLowSurrogate(input[i + 1]))
+                    {
+                        sb.Append(c);
+                        sb.Append(input[i + 1]);
+                        i++;
+                    }
+                    else sb.Append('\uFFFD');
+                }
+                else if (char.IsLowSurrogate(c))
+                {
+                    sb.Append('\uFFFD');
+                }
+                else sb.Append(c);
+            }
+            return sb.ToString();
+        }
 
         private static void FixDefaultFont(bool forceFix = false)
         {
@@ -132,6 +157,7 @@ namespace HacknetFontReplace.Core
         [HarmonyPatch(typeof(SpriteFont), nameof(SpriteFont.MeasureString), typeof(string))]
         private static bool PrefixMeasureString(SpriteFont __instance, string text, ref Vector2 __result)
         {
+            text = SanitizeSurrogates(text);
             if (!defaultFontMap.TryGetValue(__instance, out var dynamicSpriteFont))
             {
                 return true;
@@ -241,6 +267,7 @@ namespace HacknetFontReplace.Core
             SpriteEffects effects,
             float layerDepth)
         {
+            text = SanitizeSurrogates(text);
             if (!defaultFontMap.TryGetValue(spriteFont, out var dynamicSpriteFont))
             {
                 return true;
